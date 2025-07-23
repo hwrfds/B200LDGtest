@@ -16,7 +16,7 @@ with col2:
     wind   = st.slider("Wind Speed (kt)",     -20,    30,    0,   1,
                        help="Negative = tailwind, Positive = headwind")
 
-# ─── Step 2: Table 1 – Pressure-Height × OAT ────────────────────────────────
+# ─── Step 2: Table 1 – Pressure Altitude × OAT ──────────────────────────────
 raw1 = pd.read_csv("pressureheight_oat.csv", skiprows=[0])
 raw1 = raw1.rename(columns={ raw1.columns[0]: "dummy",
                              raw1.columns[1]: "PressAlt" })
@@ -74,23 +74,19 @@ st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 
 # ─── Step 5: Table 4 – 50 ft Obstacle Correction ────────────────────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
-obs_cols = []
-for c in raw4.iloc[0]:
-    try:
-        obs_cols.append(int(float(str(c).strip())))
-    except:
-        continue
 
-df4 = raw4.iloc[1:].reset_index(drop=True)
-df4 = df4.iloc[:, :len(obs_cols)].apply(pd.to_numeric, errors="coerce")
-df4.columns = obs_cols
+# Select first 2 columns: ground roll and 50-ft distance
+df4 = raw4.iloc[:, :2].copy()
+df4.columns = [0, 50]
+df4 = df4.apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
 
 def lookup_tbl4(df, refd):
     sorted_df = df.sort_values(by=0).reset_index(drop=True)
-    ref0 = sorted_df[0]
-    valid = ref0[ref0 <= refd]
-    row = valid.index.max() if not valid.empty else 0
-    return sorted_df.at[row, 50]
+    ref_vals = sorted_df[0].values
+    obs_vals = sorted_df[50].values
+    return float(np.interp(refd, ref_vals, obs_vals,
+                           left=obs_vals[0],
+                           right=obs_vals[-1]))
 
 obs50 = lookup_tbl4(df4, wind_adj)
 st.markdown("### Step 4: 50 ft Obstacle Correction")
