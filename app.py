@@ -73,8 +73,10 @@ st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 
 # ─── Step 5: Table 4 – 50 ft Obstacle Correction ────────────────────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
+st.write("📋 Loaded 50ft.csv preview:")
+st.write(raw4.head())
 
-# Check we have at least two columns
+# Only proceed if we have at least 2 columns
 if raw4.shape[1] >= 2:
     df4 = raw4.iloc[:, :2].copy()
     df4.columns = [0, 50]
@@ -95,6 +97,5 @@ if raw4.shape[1] >= 2:
     obs50 = lookup_tbl4(df4, wind_adj)
     st.markdown("### Step 4: 50 ft Obstacle Correction")
     st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
-
 else:
-    st.error("❌ 50ft.csv must have at least two columns: [ground roll, over-50ft]")
+    st.error(f"❌ 50ft.csv only has {raw4.shape[1]} column(s). Expected at least 2.")
