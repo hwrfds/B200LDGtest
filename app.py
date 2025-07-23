@@ -13,13 +13,12 @@ with col1:
     oat       = st.slider("Outside Air Temperature (°C)", -5, 45, 15, 1)
 with col2:
     weight = st.slider("Landing Weight (lb)", 9000, 12500, 11500, 100)
-    wind   = st.slider("Wind Speed (kt)",     -20,    30,    0,   1,
+    wind   = st.slider("Wind Speed (kt)",     -20, 30, 0, 1,
                        help="Negative = tailwind, Positive = headwind")
 
 # ─── Step 2: Table 1 – Pressure Altitude × OAT ──────────────────────────────
 raw1 = pd.read_csv("pressureheight_oat.csv", skiprows=[0])
-raw1 = raw1.rename(columns={ raw1.columns[0]: "dummy",
-                             raw1.columns[1]: "PressAlt" })
+raw1 = raw1.rename(columns={raw1.columns[0]: "dummy", raw1.columns[1]: "PressAlt"})
 tbl1 = raw1.drop(columns=["dummy"]).set_index("PressAlt")
 tbl1.columns = tbl1.columns.astype(int)
 
@@ -33,7 +32,7 @@ st.markdown("### Step 1: Baseline Distance")
 st.success(f"Baseline landing distance: **{baseline:.0f} ft**")
 
 # ─── Step 3: Table 2 – Weight Adjustment ────────────────────────────────────
-raw2 = pd.read_csv("weightadjustment.csv", header=0)
+raw2    = pd.read_csv("weightadjustment.csv", header=0)
 wt_cols = [int(str(w).strip()) for w in raw2.columns]
 df2     = raw2.astype(float)
 df2.columns = wt_cols
@@ -59,12 +58,12 @@ df3.columns = wind_cols
 
 def lookup_tbl3(df, refd, ws):
     sorted_df = df.sort_values(by=0).reset_index(drop=True)
-    ref0      = sorted_df[0]
-    valid     = ref0[ref0 <= refd]
-    row       = valid.index.max() if not valid.empty else 0
-    base0     = ref0.iloc[row]
-    abs_ws    = sorted_df.at[row, ws]
-    delta     = abs_ws - base0
+    ref0 = sorted_df[0]
+    valid = ref0[ref0 <= refd]
+    row = valid.index.max() if not valid.empty else 0
+    base0 = ref0.iloc[row]
+    abs_ws = sorted_df.at[row, ws]
+    delta = abs_ws - base0
     return delta
 
 delta_wind = lookup_tbl3(df3, weight_adj, wind)
@@ -75,19 +74,27 @@ st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 # ─── Step 5: Table 4 – 50 ft Obstacle Correction ────────────────────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
 
-# Select first 2 columns: ground roll and 50-ft distance
-df4 = raw4.iloc[:, :2].copy()
-df4.columns = [0, 50]
-df4 = df4.apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
+# Check we have at least two columns
+if raw4.shape[1] >= 2:
+    df4 = raw4.iloc[:, :2].copy()
+    df4.columns = [0, 50]
+    df4 = df4.apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
 
-def lookup_tbl4(df, refd):
-    sorted_df = df.sort_values(by=0).reset_index(drop=True)
-    ref_vals = sorted_df[0].values
-    obs_vals = sorted_df[50].values
-    return float(np.interp(refd, ref_vals, obs_vals,
-                           left=obs_vals[0],
-                           right=obs_vals[-1]))
+    def lookup_tbl4(df, refd):
+        sorted_df = df.sort_values(by=0).reset_index(drop=True)
+        ref_vals  = sorted_df[0].values
+        obs_vals  = sorted_df[50].values
+        return float(np.interp(
+            refd,
+            ref_vals,
+            obs_vals,
+            left=obs_vals[0],
+            right=obs_vals[-1]
+        ))
 
-obs50 = lookup_tbl4(df4, wind_adj)
-st.markdown("### Step 4: 50 ft Obstacle Correction")
-st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
+    obs50 = lookup_tbl4(df4, wind_adj)
+    st.markdown("### Step 4: 50 ft Obstacle Correction")
+    st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
+
+else:
+    st.error("❌ 50ft.csv must have at least two columns: [ground roll, over-50ft]")
