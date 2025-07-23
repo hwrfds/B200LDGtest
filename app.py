@@ -34,7 +34,7 @@ st.success(f"Baseline landing distance: **{baseline:.0f} ft**")
 
 # ─── Step 3: Table 2 – Weight Adjustment (interpolated) ────────────────────
 raw2    = pd.read_csv("weightadjustment.csv", header=0)
-wt_cols = [int(str(w).strip()) for w in raw2.columns]
+wt_cols = [int(w) for w in raw2.columns]
 df2     = raw2.astype(float)
 df2.columns = wt_cols
 
@@ -59,10 +59,8 @@ st.success(f"Weight-adjusted distance: **{weight_adj:.0f} ft**")
 
 # ─── Step 4: Table 3 – Wind Adjustment (interpolated) ───────────────────────
 raw3      = pd.read_csv("wind adjustment.csv", header=None)
-wind_cols = [int(str(w).strip()) for w in raw3.iloc[0]]
-df3       = raw3.iloc[1:].reset_index(drop=True)
-# convert every column to numeric, coerce errors to NaN
-df3 = df3.apply(pd.to_numeric, errors='coerce')
+wind_cols = [int(w) for w in raw3.iloc[0]]
+df3       = raw3.iloc[1:].reset_index(drop=True).apply(pd.to_numeric, errors="coerce")
 df3.columns = wind_cols
 
 def lookup_tbl3_interp(df, refd, ws):
@@ -88,20 +86,16 @@ st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 # ─── Step 5: Table 4 – 50 ft Obstacle Correction (interpolated) ────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
 
-# parse header row robustly into ints
-hdr = raw4.iloc[0].tolist()
-obs_cols = []
-for cell in hdr:
-    try:
-        val = float(cell)
-        obs_cols.append(int(val))
-    except:
-        # skip non-numeric headers
-        continue
+# 1) extract the header row and convert to numeric, marking invalid as NaN
+header = pd.to_numeric(raw4.iloc[0], errors="coerce")
+# 2) identify columns with valid numeric headers
+valid_cols = header.notna()
+# 3) build obs_cols from those headers (as int)
+obs_cols = header[valid_cols].astype(int).tolist()
 
-# grab the data rows, convert to numeric with coercion
+# 4) slice data rows and keep only valid columns
 data_rows = raw4.iloc[1:].reset_index(drop=True)
-df4 = data_rows.apply(pd.to_numeric, errors='coerce')
+df4       = data_rows.loc[:, valid_cols].apply(pd.to_numeric, errors="coerce")
 df4.columns = obs_cols
 
 def lookup_tbl4_interp(df, refd, obs_h=50):
