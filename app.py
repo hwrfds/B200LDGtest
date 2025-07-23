@@ -12,9 +12,9 @@ with col1:
     press_alt = st.slider("Pressure Altitude (ft)", 0, 10000, 2000, 250)
     oat       = st.slider("Outside Air Temperature (°C)", -5, 45, 15, 1)
 with col2:
-    weight    = st.slider("Landing Weight (lb)", 9000, 12500, 11500, 100)
-    wind      = st.slider("Wind Speed (kt)", -20, 30, 0, 1,
-                          help="Negative = tailwind, Positive = headwind")
+    weight = st.slider("Landing Weight (lb)", 9000, 12500, 11500, 100)
+    wind   = st.slider("Wind Speed (kt)", -20, 30, 0, 1,
+                       help="Negative = tailwind, Positive = headwind")
 
 # ─── Step 2: Table 1 – Pressure-Height × OAT ────────────────────────────────
 raw1 = pd.read_csv("pressureheight_oat.csv", skiprows=[0])
@@ -38,42 +38,44 @@ wt_cols = [int(str(w).strip()) for w in raw2.columns]
 df2     = raw2.astype(float)
 df2.columns = wt_cols
 
-def lookup_tbl2(df, baseline, w):
-    sorted_df = df.sort_values(by=12500).reset_index(drop=True)
-    ref12500  = sorted_df[12500]
-    valid     = ref12500[ref12500 <= baseline]
-    row       = valid.index.max() if not valid.empty else 0
+def lookup_tbl2_interp(df, baseline, w):
+    tbl       = df.sort_values(by=12500).reset_index(drop=True)
+    ref12500  = tbl[12500].values
+    weight_rs = tbl[w].values
+    deltas    = weight_rs - ref12500
+    delta_at_baseline = np.interp(
+        baseline,
+        ref12500,
+        deltas,
+        left=deltas[0],
+        right=deltas[-1]
+    )
+    return baseline + float(delta_at_baseline)
 
-    base12500 = ref12500.iloc[row]
-    abs_w     = sorted_df.at[row, w]
-    delta     = abs_w - base12500
-    return baseline + delta
-
-weight_adj = lookup_tbl2(df2, baseline, weight)
+weight_adj = lookup_tbl2_interp(df2, baseline, weight)
 st.markdown("### Step 2: Weight Adjustment")
 st.write(f"Selected Weight: **{weight} lb**")
 st.success(f"Weight-adjusted distance: **{weight_adj:.0f} ft**")
 
-# ─── Step 4: Table 3 – Wind Adjustment (with interpolation) ────────────────
-raw3       = pd.read_csv("wind adjustment.csv", header=None)
-wind_cols  = [int(str(w).strip()) for w in raw3.iloc[0]]
-df3        = raw3.iloc[1:].reset_index(drop=True).astype(float)
+# ─── Step 4: Table 3 – Wind Adjustment (interpolated) ───────────────────────
+raw3      = pd.read_csv("wind adjustment.csv", header=None)
+wind_cols = [int(str(w).strip()) for w in raw3.iloc[0]]
+df3       = raw3.iloc[1:].reset_index(drop=True).astype(float)
 df3.columns = wind_cols
 
 def lookup_tbl3_interp(df, refd, ws):
-    tbl = df.sort_values(by=0).reset_index(drop=True)
+    tbl        = df.sort_values(by=0).reset_index(drop=True)
     ref_rolls  = tbl[0].values
     wind_rolls = tbl[ws].values
     deltas     = wind_rolls - ref_rolls
-
-    delta_at_refd = np.interp(
+    delta_at_r = np.interp(
         refd,
         ref_rolls,
         deltas,
         left=deltas[0],
         right=deltas[-1]
     )
-    return float(delta_at_refd)
+    return float(delta_at_r)
 
 delta_wind = lookup_tbl3_interp(df3, weight_adj, wind)
 wind_adj   = weight_adj + delta_wind
@@ -83,17 +85,36 @@ st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 
 # ─── Step 5: Table 4 – 50 ft Obstacle Correction ────────────────────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
-obs_cols = [int(str(c).strip()) for c in raw4.iloc[0]]
+
+# Robustly parse header row into ints, skipping blanks/text
+hdr = raw4.iloc[0].tolist()
+obs_cols = []
+for cell in hdr:
+    if pd.isna(cell): 
+        continue
+    s = str(cell).strip()
+    if not s:
+        continue
+    try:
+        obs_cols.append(int(float(s)))
+    except:
+        continue
+
 df4 = raw4.iloc[1:].reset_index(drop=True).astype(float)
 df4.columns = obs_cols
 
-def lookup_tbl4(df, refd):
-    sorted_df = df.sort_values(by=0).reset_index(drop=True)
-    ref0      = sorted_df[0]
-    valid     = ref0[ref0 <= refd]
-    row       = valid.index.max() if not valid.empty else 0
-    return sorted_df.at[row, 50]
+def lookup_tbl4_interp(df, refd, obs_h=50):
+    tbl        = df.sort_values(by=0).reset_index(drop=True)
+    ref_rolls  = tbl[0].values
+    obs_rolls  = tbl[obs_h].values
+    return float(np.interp(
+        refd,
+        ref_rolls,
+        obs_rolls,
+        left=obs_rolls[0],
+        right=obs_rolls[-1]
+    ))
 
-obs50 = lookup_tbl4(df4, wind_adj)
+obs50 = lookup_tbl4_interp(df4, wind_adj, obs_h=50)
 st.markdown("### Step 4: 50 ft Obstacle Correction")
 st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
