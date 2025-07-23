@@ -18,7 +18,7 @@ with col2:
 
 # ─── Step 2: Table 1 – Pressure-Height × OAT ────────────────────────────────
 raw1 = pd.read_csv("pressureheight_oat.csv", skiprows=[0])
-raw1 = raw1.rename(columns={ raw1.columns[0]: "dummy", raw1.columns[1]: "PressAlt" })
+raw1 = raw1.rename(columns={raw1.columns[0]: "dummy", raw1.columns[1]: "PressAlt"})
 tbl1 = raw1.drop(columns=["dummy"]).set_index("PressAlt")
 tbl1.columns = tbl1.columns.astype(int)
 
@@ -32,7 +32,7 @@ st.markdown("### Step 1: Baseline Distance")
 st.write(f"Pressure Altitude: **{press_alt} ft**  \nOAT: **{oat} °C**")
 st.success(f"Baseline landing distance: **{baseline:.0f} ft**")
 
-# ─── Step 3: Table 2 – Weight Adjustment ────────────────────────────────────
+# ─── Step 3: Table 2 – Weight Adjustment (interpolated) ────────────────────
 raw2    = pd.read_csv("weightadjustment.csv", header=0)
 wt_cols = [int(str(w).strip()) for w in raw2.columns]
 df2     = raw2.astype(float)
@@ -60,7 +60,9 @@ st.success(f"Weight-adjusted distance: **{weight_adj:.0f} ft**")
 # ─── Step 4: Table 3 – Wind Adjustment (interpolated) ───────────────────────
 raw3      = pd.read_csv("wind adjustment.csv", header=None)
 wind_cols = [int(str(w).strip()) for w in raw3.iloc[0]]
-df3       = raw3.iloc[1:].reset_index(drop=True).astype(float)
+df3       = raw3.iloc[1:].reset_index(drop=True)
+# convert every column to numeric, coerce errors to NaN
+df3 = df3.apply(pd.to_numeric, errors='coerce')
 df3.columns = wind_cols
 
 def lookup_tbl3_interp(df, refd, ws):
@@ -83,30 +85,29 @@ st.markdown("### Step 3: Wind Adjustment")
 st.write(f"Wind: **{wind:+.0f} kt** → Δ: **{delta_wind:.0f} ft**")
 st.success(f"After wind adjustment: **{wind_adj:.0f} ft**")
 
-# ─── Step 5: Table 4 – 50 ft Obstacle Correction ────────────────────────────
+# ─── Step 5: Table 4 – 50 ft Obstacle Correction (interpolated) ────────────
 raw4 = pd.read_csv("50ft.csv", header=None)
 
-# Robustly parse header row into ints, skipping blanks/text
+# parse header row robustly into ints
 hdr = raw4.iloc[0].tolist()
 obs_cols = []
 for cell in hdr:
-    if pd.isna(cell): 
-        continue
-    s = str(cell).strip()
-    if not s:
-        continue
     try:
-        obs_cols.append(int(float(s)))
+        val = float(cell)
+        obs_cols.append(int(val))
     except:
+        # skip non-numeric headers
         continue
 
-df4 = raw4.iloc[1:].reset_index(drop=True).astype(float)
+# grab the data rows, convert to numeric with coercion
+data_rows = raw4.iloc[1:].reset_index(drop=True)
+df4 = data_rows.apply(pd.to_numeric, errors='coerce')
 df4.columns = obs_cols
 
 def lookup_tbl4_interp(df, refd, obs_h=50):
-    tbl        = df.sort_values(by=0).reset_index(drop=True)
-    ref_rolls  = tbl[0].values
-    obs_rolls  = tbl[obs_h].values
+    tbl       = df.sort_values(by=0).reset_index(drop=True)
+    ref_rolls = tbl[0].values
+    obs_rolls = tbl[obs_h].values
     return float(np.interp(
         refd,
         ref_rolls,
