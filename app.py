@@ -143,3 +143,29 @@ col1, col2 = st.columns(2)
 col1.success(f"{factored_ft:.0f} ft")
 col2.success(f"{factored_m:.1f} m")
 
+# ─── Step X: Runway Slope Input & Adjustment ─────────────────────────────────
+slope_deg = st.number_input(
+    "Runway Slope (°)",
+    min_value=-5.0,
+    max_value= 5.0,
+    value= 0.0,
+    step= 0.1,
+    help="Positive = downslope (increases distance), negative = upslope (no effect)"
+)
+
+# Build the slope factor: 20% extra per 1° downslope, no credit for upslope
+slope_factor = 1.0 + max(slope_deg, 0.0) * 0.20
+
+# Apply slope factor to your factored landing distance (in feet)
+# (assumes `factored_ft` was computed in your factor dropdown block)
+sloped_ft = factored_ft * slope_factor
+sloped_m  = sloped_ft * 0.3048
+
+st.markdown("### Slope Adjustment")
+col1, col2 = st.columns(2)
+col1.write(f"**Slope:** {slope_deg:+.1f}°")
+col2.write(f"**Slope Factor:** ×{slope_factor:.2f}")
+
+col3, col4 = st.columns(2)
+col3.success(f"Distance w/ Slope: **{sloped_ft:.0f} ft**")
+col4.success(f"Distance w/ Slope: **{sloped_m:.1f} m**")
