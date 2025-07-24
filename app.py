@@ -197,5 +197,8 @@ if avail_ft >= sloped_ft:
 else:
     st.error("❌ Insufficient runway available for landing")
 
-st.markdown("### Created by H Watson and R Thomas")
+
 st.markdown("### Data extracted from B200-601-228 HFG Perfomance Landing Distance w Propeller Reversing - Flap 100%")
+
+
+st.markdown("### Created by H Watson and R Thomas")
