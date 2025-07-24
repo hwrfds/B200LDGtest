@@ -147,7 +147,7 @@ col2.success(f"{factored_m:.1f} m")
 
 # ─── Step X: Runway Slope Input & Adjustment (negative = downslope) ─────────
 slope_deg = st.number_input(
-    "Runway Slope (°)",
+    "Runway Slope (%)",
     min_value=-5.0,
     max_value= 0.0,
     value= 0.0,
@@ -155,7 +155,7 @@ slope_deg = st.number_input(
     help="Negative = downslope (increases distance), Positive = upslope (no effect)"
 )
 
-# For negative slope values, apply 20% extra distance per 1° downslope
+# For negative slope values, apply 20% extra distance per 1% downslope
 slope_factor = 1.0 + max(-slope_deg, 0.0) * 0.20
 
 # Apply slope factor to the already factored landing distance (ft)
