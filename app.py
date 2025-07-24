@@ -170,3 +170,29 @@ col2.write(f"**Slope Factor:** ×{slope_factor:.2f}")
 col3, col4 = st.columns(2)
 col3.success(f"Distance w/ Slope: **{sloped_ft:.0f} ft**")
 col4.success(f"Distance w/ Slope: **{sloped_m:.1f} m**")
+
+# ─── Step Y: Landing Distance Available & Go/No-Go ─────────────────────────
+# Input available runway length in metres
+avail_m = st.number_input(
+    "Landing Distance Available (m)",
+    min_value=0.0,
+    value=800.0,
+    step=10.0,
+    help="Enter the runway length available in metres"
+)
+
+# Convert to feet
+avail_ft = avail_m / 0.3048
+
+# Display the available distance
+st.markdown("### Available Runway Length")
+c1, c2 = st.columns(2)
+c1.write(f"**{avail_m:.0f} m**")
+c2.write(f"**{avail_ft:.0f} ft**")
+
+# Compare against your final slope-adjusted requirement
+st.markdown("### Go/No-Go Decision")
+if avail_ft >= sloped_ft:
+    st.success("✅ Enough runway available for landing")
+else:
+    st.error("❌ Insufficient runway available for landing")
