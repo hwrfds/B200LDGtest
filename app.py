@@ -149,7 +149,7 @@ col2.success(f"{factored_m:.1f} m")
 slope_deg = st.number_input(
     "Runway Slope (°)",
     min_value=-5.0,
-    max_value= 5.0,
+    max_value= 0.0,
     value= 0.0,
     step= 0.1,
     help="Negative = downslope (increases distance), Positive = upslope (no effect)"
