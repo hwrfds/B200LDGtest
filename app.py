@@ -143,15 +143,7 @@ col1, col2 = st.columns(2)
 col1.success(f"{factored_ft:.0f} ft")
 col2.success(f"{factored_m:.1f} m")
 
-# ─── Step X: Runway Slope Input & Adjustment ─────────────────────────────────
-slope_deg = st.number_input(
-    "Runway Slope (°)",
-    min_value=-5.0,
-    max_value= 5.0,
-    value= 0.0,
-    step= 0.1,
-    help="Positive = downslope (increases distance), negative = upslope (no effect)"
-)
+
 
 # ─── Step X: Runway Slope Input & Adjustment (negative = downslope) ─────────
 slope_deg = st.number_input(
