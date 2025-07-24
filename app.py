@@ -164,7 +164,7 @@ sloped_m  = sloped_ft * 0.3048
 
 st.markdown("### Slope Adjustment")
 col1, col2 = st.columns(2)
-col1.write(f"**Slope:** {slope_deg:+.1f}°")
+col1.write(f"**Slope:** {slope_deg:+.1f}%")
 col2.write(f"**Slope Factor:** ×{slope_factor:.2f}")
 
 col3, col4 = st.columns(2)
