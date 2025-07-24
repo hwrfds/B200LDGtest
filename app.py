@@ -196,3 +196,5 @@ if avail_ft >= sloped_ft:
     st.success("✅ Enough runway available for landing")
 else:
     st.error("❌ Insufficient runway available for landing")
+
+st.markdown("### Created by H Watson and R Thomas")
