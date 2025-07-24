@@ -112,3 +112,10 @@ def lookup_tbl4_interp(df, refd):
 obs50 = lookup_tbl4_interp(df4, wind_adj)
 st.markdown("### Step 4: 50 ft Obstacle Correction")
 st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
+
+# ─── Additional Output: Distance in Meters ─────────────────────────────────
+obs50_m = obs50 * 0.3048
+st.markdown("### Final Landing Distance in Meters")
+st.success(f"{obs50_m:.1f} m")
+
+
