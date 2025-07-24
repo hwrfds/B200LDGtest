@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 
 # ─── Page Setup ─────────────────────────────────────────────────────────────
-st.set_page_config(page_title="B200 Landing Distance Calculator", layout="centered")
-st.title("🛬 B200 King Air Landing Distance Estimator")
+st.set_page_config(page_title="RFDS QLD B200 Landing Distance Calculator", layout="centered")
+st.title("🛬 RFDS QLD B200 King Air Landing Distance Calculator - NOT FOR OPERATIONAL USE")
 
 # ─── Step 1: User Inputs ────────────────────────────────────────────────────
 col1, col2 = st.columns(2)
