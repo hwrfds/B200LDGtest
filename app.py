@@ -118,4 +118,28 @@ obs50_m = obs50 * 0.3048
 st.markdown("### Final Landing Distance in Meters")
 st.success(f"{obs50_m:.1f} m")
 
+# ─── Step 6: Apply a Factor ───────────────────────────────────
+factor_options = {
+    "Standard Factor Dry (1.43)": 1.43,
+    "Standard Factor Wet (1.65)": 1.65,
+    "Approved Factor Dry (1.20)": 1.20,
+    "Approved Factor Wet (1.38)": 1.38,
+}
+
+# show dropdown and grab the numeric value
+factor_label = st.selectbox(
+    "Select Landing Distance Factor",
+    list(factor_options.keys())
+)
+factor = factor_options[factor_label]
+
+# apply factor to the raw over-50 ft distance
+factored_ft = obs50 * factor
+factored_m  = factored_ft * 0.3048
+
+# display results side-by-side
+st.markdown("### Factored Landing Distance")
+col1, col2 = st.columns(2)
+col1.success(f"{factored_ft:.0f} ft")
+col2.success(f"{factored_m:.1f} m")
 
