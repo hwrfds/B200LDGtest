@@ -176,8 +176,8 @@ col4.success(f"Distance w/ Slope: **{sloped_m:.1f} m**")
 avail_m = st.number_input(
     "Landing Distance Available (m)",
     min_value=0.0,
-    value=800.0,
-    step=10.0,
+    value=1150.0,
+    step=5.0,
     help="Enter the runway length available in metres"
 )
 
