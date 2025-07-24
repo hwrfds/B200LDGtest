@@ -13,7 +13,7 @@ with col1:
     oat       = st.slider("Outside Air Temperature (°C)", -5, 45, 15, 1)
 with col2:
     weight = st.slider("Landing Weight (lb)", 9000, 12500, 11500, 100)
-    wind   = st.slider("Wind Speed (kt)",     -20,    30,    0,   1,
+    wind   = st.slider("Wind Speed (kt)",     -10,    30,    0,   1,
                        help="Negative = tailwind, Positive = headwind")
 
 # ─── Step 2: Table 1 – Pressure Altitude × OAT (Bilinear Interpolation) ───
