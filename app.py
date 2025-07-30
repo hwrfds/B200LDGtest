@@ -9,7 +9,7 @@ st.title("🛬 RFDS QLD B200 King Air Landing Distance Calculator - NOT FOR OPER
 # ─── Step 1: User Inputs ────────────────────────────────────────────────────
 col1, col2 = st.columns(2)
 with col1:
-    press_alt = st.slider("Pressure Altitude (ft)",   0, 10000, 0, 250)
+    press_alt = st.slider("Pressure Altitude (ft)",   0, 10000, 0, 200)
     oat       = st.slider("Outside Air Temperature (°C)", -5, 45, 15, 1)
 with col2:
     weight = st.slider("Landing Weight (lb)", 9000, 12500, 11500, 100)
