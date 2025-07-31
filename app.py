@@ -190,12 +190,21 @@ c1, c2 = st.columns(2)
 c1.write(f"**{avail_m:.0f} m**")
 c2.write(f"**{avail_ft:.0f} ft**")
 
-# Compare against your final slope-adjusted requirement
+# Determine if tailwind exists (positive wind value)
+has_tailwind = wind < 0
+
+# Check if the 1.20 factor is selected
+using_1_2_factor = factor_label == "Approved Factor Dry (1.20)"
+
+# Go/No-Go Decision Logic
 st.markdown("### Go/No-Go Decision")
-if avail_ft >= sloped_ft:
+
+if using_1_2_factor and has_tailwind:
+    st.error("❌ Landing not permitted: No tailwind component permitted with 1.2 Factoring")
+elif avail_ft >= sloped_ft:
     st.success("✅ Enough runway available for landing")
 else:
-    st.error("❌ Insufficient runway available for landing")
+    st.error("❌ Insufficient runway available for landing"))
 
 
 st.markdown("### Data extracted from B200-601-228 HFG Perfomance Landing Distance w Propeller Reversing - Flap 100%")
