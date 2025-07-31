@@ -204,7 +204,7 @@ if using_1_2_factor and has_tailwind:
 elif avail_ft >= sloped_ft:
     st.success("✅ Enough runway available for landing")
 else:
-    st.error("❌ Insufficient runway available for landing"))
+    st.error("❌ Insufficient runway available for landing")
 
 
 st.markdown("### Data extracted from B200-601-228 HFG Perfomance Landing Distance w Propeller Reversing - Flap 100%")
