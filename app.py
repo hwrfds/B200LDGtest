@@ -54,21 +54,59 @@ wt_cols = [int(w) for w in raw2.columns]
 df2     = raw2.astype(float)
 df2.columns = wt_cols
 
-def lookup_tbl2_interp(df, baseline, w):
-    tbl      = df.sort_values(by=12500).reset_index(drop=True)
-    ref12500 = tbl[12500].values
-    w_rolls  = tbl[w].values
-    deltas   = w_rolls - ref12500
-    delta_wt = np.interp(baseline,
-                        ref12500,
-                        deltas,
-                        left=deltas[0],
-                        right=deltas[-1])
-    return baseline + float(delta_wt)
+def lookup_tbl2_interp(df, baseline, w, ref_weight=12500, _debug=False, _st=None):
+    """
+    Nearest-columns 2D interpolation on ABSOLUTE values (preferred).
+    Returns the absolute weight-adjusted distance.
+    """
+    import numpy as np
+    import pandas as pd
 
-weight_adj = lookup_tbl2_interp(df2, baseline, weight)
+    tbl = df.copy()
+    tbl.columns = [int(c) for c in tbl.columns]
+    if ref_weight not in tbl.columns:
+        raise ValueError(f"ref_weight {ref_weight} not found in columns")
+    tbl = tbl.sort_values(by=ref_weight).reset_index(drop=True).astype(float)
+
+    # X-axis tied to reference column (e.g., 12,500 lb)
+    x_ref = tbl[ref_weight].values
+
+    # Find nearest lower/upper weight columns
+    weights = np.array(sorted(int(c) for c in tbl.columns))
+    idx = int(np.searchsorted(weights, w, side="left"))
+    if idx == 0:
+        w1 = w2 = int(weights[0])
+    elif idx >= len(weights):
+        w1 = w2 = int(weights[-1])
+    else:
+        lower = int(weights[idx-1]); upper = int(weights[idx])
+        w1, w2 = (upper, upper) if upper == w else (lower, upper)
+
+    # Interpolate ABSOLUTE values in each bounding column at this baseline
+    y1 = np.interp(baseline, x_ref, tbl[w1].values,
+                   left=tbl[w1].values[0], right=tbl[w1].values[-1])
+    y2 = np.interp(baseline, x_ref, tbl[w2].values,
+                   left=tbl[w2].values[0], right=tbl[w2].values[-1])
+
+    # Horizontal blend by proximity in weight
+    if w1 == w2:
+        y = y1; alpha = None
+    else:
+        alpha = (w - w1) / (w2 - w1)
+        y = (1 - alpha) * y1 + alpha * y2
+
+   # if _debug and (_st is not None):
+    #    _st.caption(f"[WeightAdj ABS] weights={list(weights)} | w={w} → using {w1} & {w2} | alpha={alpha}")
+     #   _st.caption(f"[WeightAdj ABS] baseline={baseline:.2f} | y1={y1:.2f} | y2={y2:.2f} | result={y:.2f}")
+
+    return float(y)
+
+
+
+weight_adj = lookup_tbl2_interp(df2, baseline, weight, _debug=True, _st=st)
 st.markdown("### Step 2: Weight Adjustment")
 st.success(f"Weight-adjusted distance: **{weight_adj:.0f} ft**")
+
 
 # ─── Step 4: Table 3 – Wind Adjustment (1D Interpolation) ─────────────────
 raw3      = pd.read_csv("wind adjustment.csv", header=None)
@@ -99,17 +137,78 @@ df4  = raw4.iloc[:, :2].copy()
 df4.columns = [0, 50]
 df4 = df4.apply(pd.to_numeric, errors="coerce").dropna().reset_index(drop=True)
 
-def lookup_tbl4_interp(df, refd):
-    tbl       = df.sort_values(by=0).reset_index(drop=True)
-    ref_rolls = tbl[0].values
-    obs_vals  = tbl[50].values
-    return float(np.interp(refd,
-                           ref_rolls,
-                           obs_vals,
-                           left=obs_vals[0],
-                           right=obs_vals[-1]))
+def lookup_tbl4_interp(df, refd, h=50, ref_col=0, _debug=False, _st=None):
+    """
+    2D ABSOLUTE interpolation for the 50 ft obstacle table (or any height h):
+      - x-axis: reference distances in column `ref_col` (e.g., 0 ft obstacle).
+      - y-axis: absolute distances in the two nearest obstacle-height columns around `h`.
+      - returns the absolute distance at obstacle height h.
+    """
+    import numpy as np
+    import pandas as pd
 
-obs50 = lookup_tbl4_interp(df4, wind_adj)
+    tbl = df.copy().astype(float)
+
+    # Collect obstacle height columns (all except ref_col)
+    all_cols = [c for c in tbl.columns]
+    # Convert to numeric if needed
+    try:
+        all_cols_num = [int(c) for c in all_cols]
+    except Exception:
+        all_cols_num = []
+        for c in all_cols:
+            try: all_cols_num.append(int(c))
+            except: all_cols_num.append(c)
+
+    # Map back to original labels
+    colmap = {int(c): c for c in all_cols if str(c).isdigit()}
+    if ref_col not in colmap:
+        # ref_col may already be the exact label
+        ref_label = ref_col
+    else:
+        ref_label = colmap[ref_col]
+
+    # Sort by the reference column
+    tbl = tbl.sort_values(by=ref_label).reset_index(drop=True)
+
+    x_ref = tbl[ref_label].values
+
+    # Candidate obstacle columns (numeric only, excluding ref_col)
+    obs_heights = sorted([k for k in colmap.keys() if k != ref_col])
+
+    # Find nearest lower/upper heights around h
+    import bisect
+    idx = bisect.bisect_left(obs_heights, h)
+    if idx == 0:
+        h1 = h2 = obs_heights[0]
+    elif idx >= len(obs_heights):
+        h1 = h2 = obs_heights[-1]
+    else:
+        lower = obs_heights[idx-1]; upper = obs_heights[idx]
+        h1, h2 = (upper, upper) if upper == h else (lower, upper)
+
+    # Interpolate ABS values in each obstacle column at this refd
+    y1 = np.interp(refd, x_ref, tbl[colmap[h1]].values,
+                   left=tbl[colmap[h1]].values[0], right=tbl[colmap[h1]].values[-1])
+    y2 = np.interp(refd, x_ref, tbl[colmap[h2]].values,
+                   left=tbl[colmap[h2]].values[0], right=tbl[colmap[h2]].values[-1])
+
+    # Horizontal blend by obstacle height
+    if h1 == h2:
+        y = y1; alpha = None
+    else:
+        alpha = (h - h1) / (h2 - h1)
+        y = (1 - alpha) * y1 + alpha * y2
+
+  #  if _debug and (_st is not None):
+   #     _st.caption(f"[Obs ABS] heights={obs_heights} | h={h} → using {h1} & {h2} | alpha={alpha}")
+    #    _st.caption(f"[Obs ABS] refd={refd:.2f} | y1={y1:.2f} | y2={y2:.2f} | result={y:.2f}")
+
+    return float(y)
+
+
+
+obs50 = lookup_tbl4_interp(df4, wind_adj, h=50, ref_col=0, _debug=True, _st=st)
 st.markdown("### Step 4: 50 ft Obstacle Correction")
 st.success(f"Final landing distance over 50 ft obstacle: **{obs50:.0f} ft**")
 
